@@ -8,7 +8,7 @@ from numpy import zeros
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.text import text_to_word_sequence
 from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Concatenate,Activation,Embedding, Flatten, Dense, LSTM, Multiply, Input, Dot
+from keras.layers import Concatenate,Activation,Embedding, Flatten, Dense, LSTM, Multiply, Input, Dot, Dropout, Bidirectional, Lambda, Subtract
 from keras.models import Sequential, Model
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 import keras
@@ -19,6 +19,9 @@ from sklearn.model_selection import StratifiedShuffleSplit
 
 import json
 import argparse
+import itertools
+
+import model
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -30,47 +33,13 @@ sess = tf.Session(config=config)
 keras.backend.set_session(sess)
 
 
-def create_model(t, max_tokens):
-    vocab_size = len(t.word_index) +1
-    embeddings_index = {}
-
-    #Word embeddings extraction
-    with open('/home/keshavsingh/glove.6B.100d.txt', 'r') as f:
-        for line in f:
-            values = line.split()
-            word = values[0]
-            coefs = np.asarray(values[1:], dtype='float32')
-            embeddings_index[word] = coefs
-
-    #embedding matrix
-    embedding_matrix = zeros((vocab_size, 100))
-    for word,i in t.word_index.items():
-        embedding_vector = embeddings_index.get(word)
-        if embedding_vector is not None:
-            embedding_matrix[i] = embedding_vector
-
-    #Keras Implementation
-    input_premise = Input(shape = (max_tokens,), dtype='int32')
-    input_claim = Input(shape = (max_tokens,), dtype='int32')
-    input_warrant = Input(shape = (max_tokens,), dtype='int32')
-    emb = Embedding(output_dim = 100, input_dim = vocab_size, weights=[embedding_matrix], input_length = max_tokens, mask_zero=True)
-
-    x_premise = emb(input_premise)
-    x_claim = emb(input_claim)
-    x_warrant = emb(input_warrant)
-    lstm_out_premise = LSTM(100)(x_premise)
-    lstm_out_claim = LSTM(100)(x_claim)
-    lstm_out_warrant = LSTM(100)(x_warrant)
-    y = Concatenate()([lstm_out_premise, lstm_out_warrant, lstm_out_claim])
-    y = Dense(100, activation='tanh')(y)
-    output = Dense(2, activation='softmax')(y)
-    
-    return Model(inputs=[input_premise, input_warrant, input_claim], outputs=[output])
-    
-    
 def main(args):
+    logging.info("Parameters: \n  {}".format("\n".join(["{}={}".format(k, v) for k, v in args.__dict__.items()])))
+    logging.info("")
+    logging.info("Loading data...")
+    
     # Load benchmark.
-    total_dataset = json.load(open(args.train_data))
+    total_dataset = [json.loads(ln) for ln in open(args.train_data)]
     logging.info("# instances: {}".format(len(total_dataset)))
 
     # Divide them
@@ -88,6 +57,7 @@ def main(args):
     t.fit_on_texts(total_c)
     t.fit_on_texts(total_w)
     
+    logging.info("vocab size: {}".format(len(t.word_index)))
     encoded_premise = t.texts_to_sequences(total_p)
     encoded_claim = t.texts_to_sequences(total_c)
     encoded_warrant = t.texts_to_sequences(total_w)
@@ -100,20 +70,20 @@ def main(args):
     padded_claim = pad_sequences(encoded_claim, maxlen=max_tokens, padding='post')
     padded_warrant = pad_sequences(encoded_warrant, maxlen=max_tokens, padding='post')
 
-    model = create_model(t, max_tokens)
-    print(model.summary())
+    m = model.create_conneau_model(args, t, max_tokens)
+    print(m.summary())
     
     #plot_model(model, to_file='claim_premise.png')
-    model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+    m.compile(optimizer='adagrad', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
     logging.info("Start training...")
-
 
     es = keras.callbacks.EarlyStopping(monitor='val_loss',
                                   min_delta=0,
                                   patience=15,
                                   verbose=1, mode='auto')
 
+    # Use stratified split so that class distribution in training data and validation data is the same
     sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
     data = np.array(list(zip(padded_premise, padded_warrant, padded_claim)))
     labels = np.array(labels)
@@ -125,7 +95,7 @@ def main(args):
         train_X = list(map(lambda x: np.array(x), train_X))
         val_X = list(map(lambda x: np.array(x), val_X))
 
-        model.fit(
+        m.fit(
             train_X,
             train_Y,
             epochs = 100,
@@ -140,6 +110,18 @@ if "__main__" == __name__:
     parser.add_argument(
         '-data','--train-data', dest='train_data', required=True,
         help="Training data.")
-
+    parser.add_argument(
+        '-mlp','--mlp-layers', dest='mp_mlp_layers', default=2,
+        help="Layers of MLP.")
+    parser.add_argument(
+        '-mlp-do','--mlp-dropout', dest='mp_mlp_dropout', default=0.5,
+        help="Dropout rate of MLP.")
+    parser.add_argument(
+        '-mlp-dim','--mlp-dim', dest='mp_mlp_dim', default=100,
+        help="Hidden dim of MLP.")
+    parser.add_argument(
+        '-sentenc-dim','--sentencoder-dim', dest='mp_sentenc_dim', default=100,
+        help="Hidden dim of sentence encoder.")
+    
     args = parser.parse_args()
     main(args)
