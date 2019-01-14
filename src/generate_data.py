@@ -50,7 +50,7 @@ def main():
         premise_pool = []
 
         for p, c, w in pos_dataset:
-            if c != claim:
+            if c != claim and p != prem:
                 premise_pool += [p]
 
         neg_claim = claim
@@ -61,24 +61,20 @@ def main():
     inst = []
     
     for p, c, w in pos_dataset:
-        inst += [{
+        print(json.dumps({
             "label": 1,
             "claim": c,
             "premise": p,
             "warrant": w,
-        }]
+        }))
         
     for p, c, w in neg_dataset:
-        inst += [{
+        print(json.dumps({
             "label": 0,
             "claim": c,
             "premise": p,
             "warrant": w,
-        }]
-
-    logging.info("# instances: {}".format(len(inst)))
-    
-    print(json.dumps(inst))
+        }))
 
     
 if "__main__" == __name__:
