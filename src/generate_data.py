@@ -58,8 +58,6 @@ def main():
         neg_dataset += [(neg_premise, neg_claim, warrant)]
 
     # Create the dataset.
-    inst = []
-    
     for p, c, w in pos_dataset:
         print(json.dumps({
             "label": 1,
