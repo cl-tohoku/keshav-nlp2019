@@ -140,9 +140,10 @@ model.compile(optimizer='nadam', loss='sparse_categorical_crossentropy', metrics
 
 logging.info("Start training...")
 
-keras.callbacks.EarlyStopping(monitor='val_loss',
+
+es = keras.callbacks.EarlyStopping(monitor='val_loss',
                               min_delta=0,
-                              patience=2,
+                              patience=4,
                               verbose=1, mode='auto')
 
-model.fit([padded_premise, padded_warrant, padded_claim], labels, epochs = 100,shuffle = True, batch_size = 32, verbose = 1)
+model.fit([padded_premise, padded_warrant, padded_claim], labels, epochs = 100, validation_split = 0.1, shuffle = True, callbacks = [es], batch_size = 32, verbose = 1)
