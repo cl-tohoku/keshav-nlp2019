@@ -1,4 +1,5 @@
 import os,random
+from random import seed
 from collections import defaultdict
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import csv, sys, nltk
@@ -64,6 +65,7 @@ for w0,w1,l in warrants_labels:
 #Generating data (positive and negative)
 pos_dataset = list(zip(premise, claim, warrant_correct))
 neg_dataset = []
+random.seed(123)
 for prem, claim, warrant in pos_dataset:
     premise_pool = []
 
