@@ -104,8 +104,7 @@ vocab_size = len(t.word_index) +1
 encoded_premise = t.texts_to_sequences(total_p)
 encoded_claim = t.texts_to_sequences(total_c)
 encoded_warrant = t.texts_to_sequences(total_w)
-sent_numbers = [len(s) for s in encoded_premise] + [len(s) for s in encoded_claim] + [len(s) for s in encoded_wa\
-rrant]
+sent_numbers = [len(s) for s in encoded_premise] + [len(s) for s in encoded_claim] + [len(s) for s in encoded_warrant]
 max_tokens = max(sent_numbers)
 
 logging.info("max tokens: {}".format(max_tokens))
@@ -146,5 +145,4 @@ keras.callbacks.EarlyStopping(monitor='val_loss',
                               patience=2,
                               verbose=1, mode='auto')
 
-model.fit([padded_premise, padded_warrant, padded_claim], labels, epochs = 100,shuffle = True, batch_size = 32, \
-verbose = 1)
+model.fit([padded_premise, padded_warrant, padded_claim], labels, epochs = 100,shuffle = True, batch_size = 32, verbose = 1)
