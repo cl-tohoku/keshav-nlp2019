@@ -141,5 +141,10 @@ model.compile(optimizer='nadam', loss='sparse_categorical_crossentropy', metrics
 
 logging.info("Start training...")
 
+keras.callbacks.EarlyStopping(monitor='val_loss',
+                              min_delta=0,
+                              patience=2,
+                              verbose=1, mode='auto')
+
 model.fit([padded_premise, padded_warrant, padded_claim], labels, epochs = 100,shuffle = True, batch_size = 32, \
 verbose = 1)
