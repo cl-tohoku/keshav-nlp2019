@@ -7,17 +7,17 @@ from numpy import zeros
 import itertools
 import logging
 import json
+import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 
-def main():
+def main(args):
     premise = []
     claim = []
-    warrant = []
 
     #Premise,claim extraction
     warrant_0, warrant_1, label = [], [], []
-    with open('/home/keshavsingh/train.tsv','r') as f:
+    with open(args.data, 'r') as f:
         for line in csv.reader(f, delimiter='\t'):
             t_premise = line[4]
             t_claim = line[5]
@@ -39,8 +39,26 @@ def main():
         else:
             w = w1
         warrant_correct.append(w)
+        
+    # creating claim and warrant dictionary
+    # claim_warrant = list(zip(claim,warrant_correct))
+    # dict_cw = defaultdict(list)
+    # for c, w in claim_warrant:
+    #    dict_cw[c].append(w)
 
+    ########## Generating premise, claim and random warrant (positive dataset)
+    #pos_data = list(zip(premise,claim))
+    #new_data = []
+    #random.seed(33)
+    #for pre,cla in pos_data:
+    #    for c, w in dict_cw.items():
+    #        warrant_pool = []
+    #        if c == cla:
+    #            warrant_pool += w
+    #            new_data += [(pre, cla, random.sample(warrant_pool, 1)[0])]
+        
     #Generating data (positive and negative)
+    #pos_dataset = new_data
     pos_dataset = list(zip(premise, claim, warrant_correct))
     neg_dataset = []
     
@@ -76,4 +94,9 @@ def main():
 
     
 if "__main__" == __name__:
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-data','--data', dest='data', required=True,
+        help="Data to be parsed.")
+    args = parser.parse_args()
+    main(args)
