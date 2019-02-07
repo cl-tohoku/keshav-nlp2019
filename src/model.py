@@ -35,7 +35,7 @@ def kabs():
     return Lambda(lambda x: keras.backend.abs(x))
 
 
-def load_pretrained_emb(t, fn = '/home/keshavsingh/glove.6B.100d.txt'):
+def load_pretrained_emb(t, fn = '/home/keshavsingh/Glove_embeddings/glove.6B.100d.txt'):
     vocab_size = len(t.word_index) +1
     embeddings_index = {}
 
@@ -65,7 +65,9 @@ def load_pretrained_emb(t, fn = '/home/keshavsingh/glove.6B.100d.txt'):
     return embedding_matrix
 
 
-def create_conneau_model(args, t, max_tokens):
+def create_conneau_model(args, t, max_tokens, use_warrant):
+    sentences = None
+    inputs = None
     vocab_size = len(t.word_index) +1
     embedding_matrix = load_pretrained_emb(t)
             
@@ -85,8 +87,12 @@ def create_conneau_model(args, t, max_tokens):
     
     #
     # Feature extraction
-    sentences = [lstm_out_premise, lstm_out_warrant, lstm_out_claim]
-    
+    if use_warrant:
+        sentences = [lstm_out_premise, lstm_out_warrant, lstm_out_claim]
+        inputs=[input_premise, input_warrant, input_claim]
+    else:
+        sentences = [lstm_out_premise, lstm_out_claim]
+        inputs=[input_premise, input_claim]
     features = []
     features += sentences
     
@@ -108,5 +114,5 @@ def create_conneau_model(args, t, max_tokens):
     y = Dropout(args.mp_mlp_dropout)(y)
     output = Dense(2, activation='softmax')(y)
     
-    return Model(inputs=[input_premise, input_warrant, input_claim], outputs=[output])
+    return Model(inputs=inputs, outputs=[output])
     

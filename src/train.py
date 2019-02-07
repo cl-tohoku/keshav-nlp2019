@@ -22,6 +22,7 @@ import argparse
 import itertools
 
 import model
+import pickle
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -70,7 +71,7 @@ def main(args):
     padded_claim = pad_sequences(encoded_claim, maxlen=max_tokens, padding='post')
     padded_warrant = pad_sequences(encoded_warrant, maxlen=max_tokens, padding='post')
 
-    m = model.create_conneau_model(args, t, max_tokens)
+    m = model.create_conneau_model(args, t, max_tokens, args.warrant)
     print(m.summary())
     
     #plot_model(model, to_file='claim_premise.png')
@@ -85,7 +86,12 @@ def main(args):
 
     # Use stratified split so that class distribution in training data and validation data is the same
     sss = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=0)
-    data = np.array(list(zip(padded_premise, padded_warrant, padded_claim)))
+    data = None
+    if args.warrant:
+        data = np.array(list(zip(padded_premise, padded_warrant, padded_claim)))
+    else:
+        data = np.array(list(zip(padded_premise, padded_claim)))
+        
     labels = np.array(labels)
     
     for tr, vl in sss.split(data, labels):
@@ -103,6 +109,9 @@ def main(args):
             callbacks = [es],
             batch_size = 32,
             verbose = 1)
+        
+        m.save_weights("model.hdf5")
+        pickle.dump(t, open("tok.pickle", "wb"))
 
         
 if "__main__" == __name__:
@@ -122,6 +131,8 @@ if "__main__" == __name__:
     parser.add_argument(
         '-sentenc-dim','--sentencoder-dim', dest='mp_sentenc_dim', default=100,
         help="Hidden dim of sentence encoder.")
-    
+    parser.add_argument(
+        '-w','--warrant', dest='warrant', action='store_true',
+        help="Use warrant.")
     args = parser.parse_args()
     main(args)
