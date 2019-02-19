@@ -91,7 +91,7 @@ def main(args):
         data = np.array(list(zip(padded_premise, padded_warrant, padded_claim)))
     else:
         data = np.array(list(zip(padded_premise, padded_claim)))
-        
+
     labels = np.array(labels)
     
     for tr, vl in sss.split(data, labels):
