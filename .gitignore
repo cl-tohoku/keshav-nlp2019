@@ -1,1 +1,5 @@
 *.hdf5
+Clustering Project/
+*.pickle
+Other/
+
